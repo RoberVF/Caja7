@@ -1,64 +1,101 @@
+"use client"
+
 import * as React from "react"
-import * as TabsPrimitive from "@radix-ui/react-tabs"
+import { cn } from "../../lib/utils"
 
-import { cn } from "@/lib/utils"
+const Tabs = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement> & {
+    defaultValue?: string
+    value?: string
+    onValueChange?: (value: string) => void
+  }
+>(({ className, defaultValue, value, onValueChange, ...props }, ref) => {
+  const [internalValue, setInternalValue] = React.useState(defaultValue)
 
-function Tabs({
-  className,
-  ...props
-}: React.ComponentProps<typeof TabsPrimitive.Root>) {
+  const currentValue = value !== undefined ? value : internalValue
+
+  const handleValueChange = (newValue: string) => {
+    setInternalValue(newValue)
+    onValueChange?.(newValue)
+  }
+
   return (
-    <TabsPrimitive.Root
-      data-slot="tabs"
-      className={cn("flex flex-col gap-2", className)}
+    <div
+      ref={ref}
+      className={cn("", className)}
       {...props}
+      data-value={currentValue}
+      data-state={currentValue ? "active" : "inactive"}
     />
   )
-}
+})
+Tabs.displayName = "Tabs"
 
-function TabsList({
-  className,
-  ...props
-}: React.ComponentProps<typeof TabsPrimitive.List>) {
-  return (
-    <TabsPrimitive.List
-      data-slot="tabs-list"
+const TabsList = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
+  ({ className, ...props }, ref) => (
+    <div
+      ref={ref}
       className={cn(
-        "bg-muted text-muted-foreground inline-flex h-9 w-fit items-center justify-center rounded-lg p-1",
-        className
+        "inline-flex h-10 items-center justify-center rounded-md bg-muted p-1 text-muted-foreground",
+        className,
       )}
       {...props}
     />
-  )
-}
+  ),
+)
+TabsList.displayName = "TabsList"
 
-function TabsTrigger({
-  className,
-  ...props
-}: React.ComponentProps<typeof TabsPrimitive.Trigger>) {
+const TabsTrigger = React.forwardRef<
+  HTMLButtonElement,
+  React.ButtonHTMLAttributes<HTMLButtonElement> & { value: string }
+>(({ className, value, ...props }, ref) => {
+  const onClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    const tabs = e.currentTarget.closest("[data-value]") as HTMLDivElement
+    if (!tabs) return
+
+    tabs.setAttribute("data-value", value)
+    const onValueChange = tabs.onValueChange as unknown as ((value: string) => void) | undefined
+    onValueChange?.(value)
+
+    props.onClick?.(e)
+  }
+
   return (
-    <TabsPrimitive.Trigger
-      data-slot="tabs-trigger"
+    <button
+      ref={ref}
       className={cn(
-        "data-[state=active]:bg-background data-[state=active]:text-foreground focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:outline-ring inline-flex flex-1 items-center justify-center gap-1.5 rounded-md px-2 py-1 text-sm font-medium whitespace-nowrap transition-[color,box-shadow] focus-visible:ring-[3px] focus-visible:outline-1 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:shadow-sm [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
-        className
+        "inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm",
+        className,
       )}
       {...props}
+      onClick={onClick}
+      data-state={props.parentElement?.getAttribute("data-value") === value ? "active" : "inactive"}
     />
   )
-}
+})
+TabsTrigger.displayName = "TabsTrigger"
 
-function TabsContent({
-  className,
-  ...props
-}: React.ComponentProps<typeof TabsPrimitive.Content>) {
-  return (
-    <TabsPrimitive.Content
-      data-slot="tabs-content"
-      className={cn("flex-1 outline-none", className)}
-      {...props}
-    />
-  )
-}
+const TabsContent = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement> & { value: string }>(
+  ({ className, value, ...props }, ref) => {
+    const isActive = props.parentElement?.getAttribute("data-value") === value
+
+    if (!isActive) return null
+
+    return (
+      <div
+        ref={ref}
+        className={cn(
+          "mt-2 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+          className,
+        )}
+        {...props}
+        data-state={isActive ? "active" : "inactive"}
+      />
+    )
+  },
+)
+TabsContent.displayName = "TabsContent"
 
 export { Tabs, TabsList, TabsTrigger, TabsContent }
+
